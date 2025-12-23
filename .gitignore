@@ -11,3 +11,12 @@ wheels/
 
 # Environment variables
 .env
+
+# Google Calendar credentials
+credentials/
+*.json
+!pyproject.json
+
+# ngrok
+ngrok
+ngrok.tgz
