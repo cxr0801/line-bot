@@ -16,6 +16,7 @@ wheels/
 credentials/
 *.json
 !pyproject.json
+!zbpack.json
 
 # ngrok
 ngrok
