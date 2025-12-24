@@ -39,6 +39,14 @@ notion_client = Client(auth=notion_api_key) if notion_api_key else None
 # Initialize Google Calendar service
 def get_calendar_service():
     credentials_path = os.getenv('GOOGLE_CALENDAR_CREDENTIALS')
+    if not credentials_path:
+        return None
+
+    # Check if file exists
+    if not os.path.exists(credentials_path):
+        app.logger.warning(f"Google Calendar credentials file not found: {credentials_path}")
+        return None
+
     credentials = service_account.Credentials.from_service_account_file(
         credentials_path,
         scopes=['https://www.googleapis.com/auth/calendar']
@@ -48,7 +56,10 @@ def get_calendar_service():
 
 try:
     calendar_service = get_calendar_service()
-    app.logger.info("Google Calendar service initialized successfully")
+    if calendar_service:
+        app.logger.info("Google Calendar service initialized successfully")
+    else:
+        app.logger.info("Google Calendar service not configured (skipped)")
 except Exception as e:
     calendar_service = None
     app.logger.error(f"Failed to initialize Google Calendar: {str(e)}")
