@@ -219,7 +219,6 @@ def save_to_notion(transcription: str, note_type: str = "語音筆記", user_id:
         now = datetime.now(tz)
 
         # Create page in Notion database
-        # Start with minimal properties - only title is required
         properties = {
             "摘要": {
                 "title": [
@@ -229,14 +228,27 @@ def save_to_notion(transcription: str, note_type: str = "語音筆記", user_id:
                         }
                     }
                 ]
+            },
+            "內容": {
+                "rich_text": [
+                    {
+                        "text": {
+                            "content": transcription
+                        }
+                    }
+                ]
+            },
+            "日期": {
+                "date": {
+                    "start": now.isoformat()
+                }
+            },
+            "類型": {
+                "select": {
+                    "name": note_type
+                }
             }
         }
-
-        # Try to add optional properties if they exist in the database
-        # Add these back one by one after confirming the database schema
-        # "內容": rich_text
-        # "日期": date
-        # "類型": select
 
         response = notion_client.pages.create(
             parent={"database_id": database_id},
