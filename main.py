@@ -251,6 +251,11 @@ def save_to_notion(transcription: str, user_id: str = None) -> Dict[str, Any]:
                 "date": {
                     "start": now.isoformat()
                 }
+            },
+            "類型": {
+                "select": {
+                    "name": "語音筆記"
+                }
             }
         }
 
