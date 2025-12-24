@@ -242,24 +242,8 @@ def save_to_notion(transcription: str, user_id: str = None) -> Dict[str, Any]:
                 "date": {
                     "start": now.isoformat()
                 }
-            },
-            "類型": {
-                "select": {
-                    "name": "語音記錄"
-                }
             }
         }
-
-        if user_id:
-            properties["用戶ID"] = {
-                "rich_text": [
-                    {
-                        "text": {
-                            "content": user_id
-                        }
-                    }
-                ]
-            }
 
         response = notion_client.pages.create(
             parent={"database_id": database_id},
