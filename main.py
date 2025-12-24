@@ -205,8 +205,8 @@ def process_message_for_calendar(text: str, reply_token: str) -> bool:
     return True
 
 
-def save_to_notion(transcription: str, user_id: str = None) -> Dict[str, Any]:
-    """將語音轉錄內容儲存到 Notion database"""
+def save_to_notion(transcription: str, note_type: str = "語音筆記", user_id: str = None) -> Dict[str, Any]:
+    """將內容儲存到 Notion database"""
     if not notion_client:
         return {'success': False, 'error': 'Notion client not initialized'}
 
@@ -254,7 +254,7 @@ def save_to_notion(transcription: str, user_id: str = None) -> Dict[str, Any]:
             },
             "類型": {
                 "select": {
-                    "name": "語音筆記"
+                    "name": note_type
                 }
             }
         }
@@ -292,6 +292,31 @@ def callback():
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     text = event.message.text
+
+    # 檢查是否以 /a 開頭（儲存到 Notion）
+    if text.startswith('/a '):
+        content = text[3:].strip()  # 移除 /a 關鍵字
+
+        if notion_client and content:
+            user_id = event.source.user_id if hasattr(event.source, 'user_id') else None
+            notion_result = save_to_notion(content, note_type="文字筆記", user_id=user_id)
+
+            if notion_result['success']:
+                reply_text = f"📝 已儲存到 Notion\n\n{content}\n\n{notion_result['url']}"
+            else:
+                reply_text = f"⚠️ Notion 儲存失敗: {notion_result['error']}"
+        else:
+            reply_text = "❌ Notion 未設定或內容為空"
+
+        with ApiClient(configuration) as api_client:
+            line_bot_api = MessagingApi(api_client)
+            line_bot_api.reply_message_with_http_info(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text=reply_text)]
+                )
+            )
+        return
 
     # 先嘗試處理為行事曆事件
     if calendar_service and process_message_for_calendar(text, event.reply_token):
@@ -332,75 +357,29 @@ def handle_audio_message(event):
                     response_format="text"
                 )
 
-            # 檢查開頭關鍵字
-            transcription_lower = transcription.strip().lower()
+            # 語音訊息自動儲存到 Notion
             content = transcription.strip()
 
-            # 判斷要使用哪個功能
-            if transcription_lower.startswith('行事曆'):
-                # 移除「行事曆」關鍵字
-                content = transcription[3:].strip()
+            if notion_client and content:
+                user_id = event.source.user_id if hasattr(event.source, 'user_id') else None
+                notion_result = save_to_notion(content, note_type="語音筆記", user_id=user_id)
 
-                # 只處理 Google Calendar
-                if calendar_service and content:
-                    calendar_handled = process_message_for_calendar(content, event.reply_token)
-                    if not calendar_handled:
-                        # 如果沒有成功處理為行事曆事件，回覆提示
-                        with ApiClient(configuration) as api_client:
-                            line_bot_api = MessagingApi(api_client)
-                            line_bot_api.reply_message_with_http_info(
-                                ReplyMessageRequest(
-                                    reply_token=event.reply_token,
-                                    messages=[TextMessage(text=f"📅 轉錄內容：{content}\n\n⚠️ 無法識別為行事曆事件，請提供時間資訊")]
-                                )
-                            )
+                if notion_result['success']:
+                    reply_text = f"🎤 語音轉錄：\n{content}\n\n✅ 已儲存到 Notion\n{notion_result['url']}"
                 else:
-                    with ApiClient(configuration) as api_client:
-                        line_bot_api = MessagingApi(api_client)
-                        line_bot_api.reply_message_with_http_info(
-                            ReplyMessageRequest(
-                                reply_token=event.reply_token,
-                                messages=[TextMessage(text="❌ Google Calendar 未設定或內容為空")]
-                            )
-                        )
-                return
-
-            elif transcription_lower.startswith('notion'):
-                # 移除「notion」關鍵字
-                content = transcription[6:].strip()
-
-                # 只儲存到 Notion
-                if notion_client and content:
-                    user_id = event.source.user_id if hasattr(event.source, 'user_id') else None
-                    notion_result = save_to_notion(content, user_id)
-
-                    if notion_result['success']:
-                        reply_text = f"📝 轉錄內容：{content}\n\n✅ 已儲存到 Notion\n{notion_result['url']}"
-                    else:
-                        reply_text = f"📝 轉錄內容：{content}\n\n⚠️ Notion 儲存失敗: {notion_result['error']}"
-                else:
-                    reply_text = "❌ Notion 未設定或內容為空"
-
-                with ApiClient(configuration) as api_client:
-                    line_bot_api = MessagingApi(api_client)
-                    line_bot_api.reply_message_with_http_info(
-                        ReplyMessageRequest(
-                            reply_token=event.reply_token,
-                            messages=[TextMessage(text=reply_text)]
-                        )
-                    )
-                return
-
+                    reply_text = f"🎤 語音轉錄：\n{content}\n\n⚠️ Notion 儲存失敗: {notion_result['error']}"
             else:
-                # 沒有關鍵字，只回覆轉錄文字，不儲存
-                with ApiClient(configuration) as api_client:
-                    line_bot_api = MessagingApi(api_client)
-                    line_bot_api.reply_message_with_http_info(
-                        ReplyMessageRequest(
-                            reply_token=event.reply_token,
-                            messages=[TextMessage(text=f"💬 {transcription}\n\n💡 提示：開頭說「行事曆」或「notion」來儲存")]
-                        )
+                reply_text = f"🎤 語音轉錄：\n{content}"
+
+            # 回覆轉錄結果
+            with ApiClient(configuration) as api_client:
+                line_bot_api = MessagingApi(api_client)
+                line_bot_api.reply_message_with_http_info(
+                    ReplyMessageRequest(
+                        reply_token=event.reply_token,
+                        messages=[TextMessage(text=reply_text)]
                     )
+                )
         finally:
             # Clean up temporary file
             import os as os_module
