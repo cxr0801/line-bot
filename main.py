@@ -224,7 +224,16 @@ def save_to_notion(transcription: str, user_id: str = None) -> Dict[str, Any]:
                 "title": [
                     {
                         "text": {
-                            "content": transcription[:100]  # 使用前100字作為標題
+                            "content": transcription[:50]  # 使用前50字作為標題
+                        }
+                    }
+                ]
+            },
+            "摘要": {
+                "rich_text": [
+                    {
+                        "text": {
+                            "content": transcription[:100]  # 使用前100字作為摘要
                         }
                     }
                 ]
