@@ -293,7 +293,7 @@ def handle_message(event):
             notion_result = save_to_notion(content, note_type="文字筆記", user_id=user_id)
 
             if notion_result['success']:
-                reply_text = f"📝 已儲存到 Notion\n\n{content}\n\n{notion_result['url']}"
+                reply_text = f"📝 已儲存到 Notion\n{notion_result['url']}"
             else:
                 reply_text = f"⚠️ Notion 儲存失敗: {notion_result['error']}"
         else:
@@ -356,9 +356,9 @@ def handle_audio_message(event):
                 notion_result = save_to_notion(content, note_type="語音筆記", user_id=user_id)
 
                 if notion_result['success']:
-                    reply_text = f"🎤 語音轉錄：\n{content}\n\n✅ 已儲存到 Notion\n{notion_result['url']}"
+                    reply_text = f"📝 已儲存到 Notion\n{notion_result['url']}"
                 else:
-                    reply_text = f"🎤 語音轉錄：\n{content}\n\n⚠️ Notion 儲存失敗: {notion_result['error']}"
+                    reply_text = f"⚠️ Notion 儲存失敗: {notion_result['error']}"
             else:
                 reply_text = f"🎤 語音轉錄：\n{content}"
 
